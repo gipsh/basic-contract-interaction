@@ -30,6 +30,7 @@ func (app *App) Run() {
 
 	pc := controllers.NewProductController()
 
+	app.Router.GET("/product/:id", pc.ProductById)
 	app.Router.GET("/products", pc.Products)
 	app.Router.POST("/product", pc.CreateProduct)
 	app.Router.POST("/product/delegate", pc.DelegateProduct)

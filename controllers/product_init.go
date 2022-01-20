@@ -61,7 +61,7 @@ func NewProductController() ProductController {
 
 	pc.SignedTxOpts = auth
 
-	contractAddress := common.HexToAddress(os.Getenv("PRIVATE_ADDRESS"))
+	contractAddress := common.HexToAddress(os.Getenv("CONTRACT_ADDRESS"))
 
 	pc.ProductInstace, err = contracts.NewProduct(contractAddress, client)
 	if err != nil {

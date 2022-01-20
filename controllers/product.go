@@ -3,6 +3,7 @@ package controllers
 import (
 	"math/big"
 	"net/http"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -44,6 +45,23 @@ func (pc *ProductController) ProductByName(c *gin.Context) {
 }
 
 func (pc *ProductController) ProductById(c *gin.Context) {
+
+	var productId int64
+	var err error
+
+	if v, ok := c.Params.Get("id"); ok {
+		productId, err = strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+	}
+
+	result, err := pc.ProductInstace.Products(&bind.CallOpts{}, big.NewInt(productId))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	c.JSON(200, result)
 
 }
 
