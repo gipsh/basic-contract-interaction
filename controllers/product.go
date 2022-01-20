@@ -3,6 +3,7 @@ package controllers
 import (
 	"math/big"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -29,18 +30,47 @@ type AcceptProductInput struct {
 	ProductId int64 `json:"product_id"`
 }
 
-func (pc *ProductController) Products(c *gin.Context) {
+func (pc *ProductController) getAllProducts(c *gin.Context) []interface{} {
 
-	result, err := pc.ProductInstace.Products(&bind.CallOpts{}, big.NewInt(0))
+	pSize, err := pc.ProductInstace.Size(&bind.CallOpts{})
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
+
+	var result []interface{}
+	for i := 1; i < int(pSize.Int64()); i++ {
+		p, err := pc.ProductInstace.Products(&bind.CallOpts{}, big.NewInt(int64(i)))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		result = append(result, p)
+	}
+
+	return result
+}
+
+func (pc *ProductController) Products(c *gin.Context) {
+
+	result := pc.getAllProducts(c)
 
 	c.JSON(200, result)
 
 }
 
 func (pc *ProductController) ProductByName(c *gin.Context) {
+
+	products := pc.getAllProducts(c)
+
+	var result []interface{}
+	for _, p := range products {
+
+		v := reflect.ValueOf(p).Elem().FieldByName("Name")
+		if v.String() == "chori" {
+			result = append(result, result...)
+		}
+	}
+
+	c.JSON(200, result)
 
 }
 
