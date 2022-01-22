@@ -2,7 +2,7 @@
 // Source: product.go
 
 // Package mock_services is a generated GoMock package.
-package mock_services
+package mock
 
 import (
 	services "github.com/gipsh/basic-contract-interaction/services"
