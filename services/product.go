@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"crypto/ecdsa"
+	"errors"
 	"log"
 	"math/big"
 	"os"
@@ -39,9 +40,6 @@ type ProductService interface {
 type ProductSerivceImp struct {
 	Client  *ethclient.Client
 	ChainId *big.Int
-
-	ProductInstace *contracts.Product
-	SignedTxOpts   *bind.TransactOpts
 }
 
 func NewProductService() ProductService {
@@ -63,9 +61,9 @@ func NewProductService() ProductService {
 
 }
 
-func (ps *ProductSerivceImp) buildSignedTxFrom(from common.Address) (*bind.TransactOpts, error) {
+func (ps *ProductSerivceImp) buildSignedTxWithKey(privKey string) (*bind.TransactOpts, error) {
 
-	privateKey, err := crypto.HexToECDSA(os.Getenv("PRIVATE_KEY"))
+	privateKey, err := crypto.HexToECDSA(privKey)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +93,6 @@ func (ps *ProductSerivceImp) buildSignedTxFrom(from common.Address) (*bind.Trans
 	auth.Value = big.NewInt(0)     // in wei
 	auth.GasLimit = uint64(300000) // in units
 	auth.GasPrice = gasPrice
-	auth.From = from
 	auth.Signer = ps.keySigner(ps.ChainId, privateKey)
 
 	return auth, nil
@@ -104,48 +101,16 @@ func (ps *ProductSerivceImp) buildSignedTxFrom(from common.Address) (*bind.Trans
 
 func (ps *ProductSerivceImp) buildSignedTx() (*bind.TransactOpts, error) {
 
-	privateKey, err := crypto.HexToECDSA(os.Getenv("PRIVATE_KEY"))
-	if err != nil {
-		return nil, err
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, err
-	}
-
-	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-	nonce, err := ps.Client.PendingNonceAt(context.Background(), fromAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	gasPrice, err := ps.Client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, ps.ChainId)
-	if err != nil {
-		return nil, err
-	}
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)     // in wei
-	auth.GasLimit = uint64(300000) // in units
-	auth.GasPrice = gasPrice
-	auth.Signer = ps.keySigner(ps.ChainId, privateKey)
-
-	return auth, nil
+	return ps.buildSignedTxWithKey(os.Getenv("PRIVATE_KEY"))
 
 }
 
 func (ps *ProductSerivceImp) keySigner(chainID *big.Int, key *ecdsa.PrivateKey) (signerfn bind.SignerFn) {
 	signerfn = func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-		// keyAddr := crypto.PubkeyToAddress(key.PublicKey)
-		// if address != keyAddr {
-		// 	return nil, errors.New("not authorized to sign this account")
-		// }
+		keyAddr := crypto.PubkeyToAddress(key.PublicKey)
+		if address != keyAddr {
+			return nil, errors.New("not authorized to sign this account")
+		}
 		return types.SignTx(tx, types.NewEIP155Signer(chainID), key)
 	}
 	return
@@ -282,7 +247,7 @@ func (ps ProductSerivceImp) AcceptProduct(productId int64, newOwner string) (str
 		return ErrorTx, err
 	}
 
-	signedTxOpts, err := ps.buildSignedTxFrom(common.HexToAddress(newOwner))
+	signedTxOpts, err := ps.buildSignedTxWithKey(newOwner)
 	if err != nil {
 		return ErrorTx, err
 	}
