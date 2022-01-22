@@ -295,24 +295,3 @@ func (ps ProductSerivceImp) AcceptProduct(productId int64, newOwner string) (str
 	return result.Hash().Hex(), nil
 
 }
-
-/*
-
-Se desea tener una api donde en ella se puedan realizar las siguientes operaciones:
-
-1 - Ver todos los productos disponibles con el detalle correspondiente.
-2 - Crear un producto nuevo desde una wallet configurada en el backend.
-3 - Delegar un producto a una wallet desde una wallet configurada en el backend.
-4 - Aceptar una delegación de un producto.
-5 - Ver todos los productos que tiene delegados determinada wallet.
-
-
-Cada una de estas operaciones deberá interactuar con un smart contract que se encuentra en la testnet mumbai de polygon, es decir la api será una pasarela donde se comunicará con dicha blockchain. La address de dicho smart contract es:0xd9E0b2C0724F3a01AaECe3C44F8023371f845196 y la  especificación del modelo de datos se encuentra allí.
-
-La api se podrá realizar en node, python, java, go. Es deseable que sea en python3 y debe utilizar la lib web3
-
-No es necesario realizar todos los puntos, si los realiza es mejor y si tiene que optar por priorizar asuma que a menor valor numérico en el listado mayor prioridad
-
-Se valora todo el background que considere colocar como tests, readmes, documentación, etc.
-
-*/
