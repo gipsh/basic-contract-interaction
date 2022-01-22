@@ -1,20 +1,15 @@
 package controllers
 
 import (
-	"math/big"
 	"net/http"
-	"reflect"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
-	"github.com/gipsh/basic-contract-interaction/contracts"
+	"github.com/gipsh/basic-contract-interaction/services"
 )
 
 type ProductController struct {
-	ProductInstace *contracts.Product
-	SignedTxOpts   *bind.TransactOpts
+	ProductService services.ProductService
 }
 
 type CreateProductInput struct {
@@ -27,31 +22,23 @@ type DelegateProductInput struct {
 }
 
 type AcceptProductInput struct {
-	ProductId int64 `json:"product_id"`
+	ProductId int64  `json:"product_id"`
+	Owner     string `json:"new_owner"`
 }
 
-func (pc *ProductController) getAllProducts(c *gin.Context) []interface{} {
+func NewProductController() ProductController {
+	pc := ProductController{}
+	pc.ProductService = services.NewProductService()
 
-	pSize, err := pc.ProductInstace.Size(&bind.CallOpts{})
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	}
-
-	var result []interface{}
-	for i := 1; i < int(pSize.Int64()); i++ {
-		p, err := pc.ProductInstace.Products(&bind.CallOpts{}, big.NewInt(int64(i)))
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
-		result = append(result, p)
-	}
-
-	return result
+	return pc
 }
 
 func (pc *ProductController) Products(c *gin.Context) {
 
-	result := pc.getAllProducts(c)
+	result, err := pc.ProductService.GetProducts()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
 
 	c.JSON(200, result)
 
@@ -59,15 +46,16 @@ func (pc *ProductController) Products(c *gin.Context) {
 
 func (pc *ProductController) ProductByName(c *gin.Context) {
 
-	products := pc.getAllProducts(c)
+	var name string
+	var err error
 
-	var result []interface{}
-	for _, p := range products {
+	if v, ok := c.Params.Get("name"); ok {
+		name = v
+	}
 
-		v := reflect.ValueOf(p).Elem().FieldByName("Name")
-		if v.String() == "chori" {
-			result = append(result, result...)
-		}
+	result, err := pc.ProductService.GetProductByName(name)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
 	c.JSON(200, result)
@@ -86,7 +74,7 @@ func (pc *ProductController) ProductById(c *gin.Context) {
 		}
 	}
 
-	result, err := pc.ProductInstace.Products(&bind.CallOpts{}, big.NewInt(productId))
+	result, err := pc.ProductService.GetProductById(productId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -103,12 +91,12 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	result, err := pc.ProductInstace.CreateProduct(pc.SignedTxOpts, input.Name)
+	tx, err := pc.ProductService.CreateProduct(input.Name)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(200, result)
+	c.JSON(200, gin.H{"tx": tx})
 
 }
 
@@ -120,14 +108,14 @@ func (pc *ProductController) DelegateProduct(c *gin.Context) {
 		return
 	}
 
-	owner := common.HexToAddress(input.Owner)
-	productId := big.NewInt(input.ProductId)
-	result, err := pc.ProductInstace.DelegateProduct(pc.SignedTxOpts, productId, owner)
+	//owner = common.HexToAddress("0xCF6380c9B128941d20d9F812dA406A79424b4B7B")
+
+	tx, err := pc.ProductService.DelegateProduct(input.ProductId, input.Owner)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(200, result)
+	c.JSON(200, gin.H{"tx": tx})
 
 }
 
@@ -139,12 +127,12 @@ func (pc *ProductController) AcceptProduct(c *gin.Context) {
 		return
 	}
 
-	productId := big.NewInt(input.ProductId)
-	result, err := pc.ProductInstace.AcceptProduct(pc.SignedTxOpts, productId)
+	tx, err := pc.ProductService.AcceptProduct(input.ProductId, input.Owner)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(200, result)
+	c.JSON(200, gin.H{"tx": tx})
 
 }
