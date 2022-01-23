@@ -122,3 +122,18 @@ func (mr *MockProductServiceMockRecorder) AcceptProduct(productId, newOwner inte
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptProduct", reflect.TypeOf((*MockProductService)(nil).AcceptProduct), productId, newOwner)
 }
+
+// GetDelegatedProducts mocks base method
+func (m *MockProductService) GetDelegatedProducts(owner string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDelegatedProducts", owner)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDelegatedProducts indicates an expected call of GetDelegatedProducts
+func (mr *MockProductServiceMockRecorder) GetDelegatedProducts(owner interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDelegatedProducts", reflect.TypeOf((*MockProductService)(nil).GetDelegatedProducts), owner)
+}
