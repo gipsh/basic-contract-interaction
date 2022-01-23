@@ -35,6 +35,7 @@ func (app *App) Run() {
 	app.Router.POST("/product", pc.CreateProduct)
 	app.Router.POST("/product/delegate", pc.DelegateProduct)
 	app.Router.POST("/product/accept", pc.AcceptProduct)
+	app.Router.GET("/products/:address", pc.GetDelegatedProducts)
 
 	app.Router.Run()
 

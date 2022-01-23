@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,13 @@ type AcceptProductInput struct {
 
 func NewProductController() ProductController {
 	pc := ProductController{}
-	pc.ProductService = services.NewProductService()
+	wallets := services.NewWalletService()
+
+	// add test account to wallets
+	wallets.AddAddressPK(os.Getenv("TEST_ACCOUNT_PK"))
+
+	// inject deps
+	pc.ProductService = services.NewProductService(wallets)
 
 	return pc
 }
@@ -108,8 +115,6 @@ func (pc *ProductController) DelegateProduct(c *gin.Context) {
 		return
 	}
 
-	//owner = common.HexToAddress("0xCF6380c9B128941d20d9F812dA406A79424b4B7B")
-
 	tx, err := pc.ProductService.DelegateProduct(input.ProductId, input.Owner)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -134,5 +139,23 @@ func (pc *ProductController) AcceptProduct(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"tx": tx})
+
+}
+
+func (pc *ProductController) GetDelegatedProducts(c *gin.Context) {
+
+	var address string
+	var err error
+
+	if v, ok := c.Params.Get("address"); ok {
+		address = v
+	}
+	prods, err := pc.ProductService.GetDelegatedProducts(address)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"address": address, "products": prods})
 
 }

@@ -29,6 +29,7 @@ Then run
 
 ## Test 
 
+#### Get product by id
 
 ```bash
 curl http://localhost:8080/product/17
@@ -42,3 +43,21 @@ curl http://localhost:8080/product/17
   "NewOwner": "0x08f5f9a336aae6a72c795ddf307864b13d13f0aa"
 }
 ```
+
+#### Get delegated products from a wallet
+
+```bash
+curl http://localhost:8080/products/0xCF6380c9B128941d20d9F812dA406A79424b4B7B
+```
+
+```json
+{
+    "address": "0xCF6380c9B128941d20d9F812dA406A79424b4B7B",
+    "products": [
+        "34",
+        "35",
+        "37"
+    ]
+}
+```
+

@@ -35,14 +35,16 @@ type ProductService interface {
 	CreateProduct(name string) (string, error) //txHash
 	DelegateProduct(productId int64, newOwner string) (string, error)
 	AcceptProduct(productId int64, newOwner string) (string, error)
+	GetDelegatedProducts(owner string) ([]string, error)
 }
 
 type ProductSerivceImp struct {
 	Client  *ethclient.Client
 	ChainId *big.Int
+	Wallets WalletService
 }
 
-func NewProductService() ProductService {
+func NewProductService(wallets WalletService) ProductService {
 
 	var err error
 	ps := ProductSerivceImp{}
@@ -56,6 +58,8 @@ func NewProductService() ProductService {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ps.Wallets = wallets
 
 	return ps
 
@@ -247,7 +251,13 @@ func (ps ProductSerivceImp) AcceptProduct(productId int64, newOwner string) (str
 		return ErrorTx, err
 	}
 
-	signedTxOpts, err := ps.buildSignedTxWithKey(newOwner)
+	// lookup the new owner key on our wallet service
+	newOwnerPrivKey, err := ps.Wallets.GetPrivateKey(common.HexToAddress(newOwner))
+	if err != nil {
+		return ErrorTx, err
+	}
+
+	signedTxOpts, err := ps.buildSignedTxWithKey(newOwnerPrivKey)
 	if err != nil {
 		return ErrorTx, err
 	}
@@ -259,4 +269,30 @@ func (ps ProductSerivceImp) AcceptProduct(productId int64, newOwner string) (str
 
 	return result.Hash().Hex(), nil
 
+}
+
+func (ps ProductSerivceImp) GetDelegatedProducts(owner string) ([]string, error) {
+
+	instance, err := ps.getInstance()
+	if err != nil {
+		return nil, err
+	}
+
+	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: 22660777, End: nil}
+
+	itr, err := instance.FilterDelegateProduct(filterOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
+
+	for itr.Next() {
+		event := itr.Event
+		if event.NewOwner.String() == owner {
+			result = append(result, event.ProductId.String())
+		}
+	}
+
+	return result, nil
 }
